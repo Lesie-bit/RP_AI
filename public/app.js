@@ -7,11 +7,9 @@ let scenario = '';
 const $ = (id) => document.getElementById(id);
 const joinScreen = $('joinScreen');
 const app = $('app');
-const roomCodeInput = $('roomCodeInput');
 const nameInput = $('nameInput');
 const joinBtn = $('joinBtn');
 const joinError = $('joinError');
-const roomLabel = $('roomLabel');
 const scenarioBanner = $('scenarioBanner');
 const chat = $('chat');
 const input = $('input');
@@ -24,13 +22,14 @@ const charNameInput = $('charNameInput');
 const saveSettingsBtn = $('saveSettingsBtn');
 const closeSettingsBtn = $('closeSettingsBtn');
 
-let roomCode = '';
+// จำชื่อล่าสุดไว้ในเครื่องผู้เล่นแต่ละคน จะได้ไม่ต้องพิมพ์ใหม่ทุกครั้ง
+nameInput.value = localStorage.getItem('rp_name') || '';
 
 joinBtn.addEventListener('click', () => {
-  roomCode = (roomCodeInput.value || 'room1').trim();
   const name = (nameInput.value || 'ผู้เล่น').trim();
+  localStorage.setItem('rp_name', name);
   joinBtn.disabled = true;
-  socket.emit('join', { roomCode, name }, (res) => {
+  socket.emit('join', { name }, (res) => {
     joinBtn.disabled = false;
     if (!res.ok) {
       joinError.textContent = res.error;
@@ -40,7 +39,6 @@ joinBtn.addEventListener('click', () => {
     scenario = res.setting;
     messages = res.messages;
     players = res.players;
-    roomLabel.textContent = 'ห้อง: ' + roomCode;
     joinScreen.hidden = true;
     app.hidden = false;
     renderScenario();
