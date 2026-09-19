@@ -252,6 +252,9 @@ button.subtle { width:120px; }
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   font-weight:700; margin-bottom:4px;
 }
+.player-head-simple {
+  margin-bottom:0;
+}
 .player-status {
   font-size:10px; padding:4px 7px; border-radius:999px; font-weight:700;
 }

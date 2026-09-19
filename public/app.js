@@ -18,6 +18,7 @@ const profileNameInput = $('profileNameInput');
 const profileCharacterNameInput = $('profileCharacterNameInput');
 const profileCharacterTraitInput = $('profileCharacterTraitInput');
 const scenarioInput = $('scenarioInput');
+const worldPdfInput = $('worldPdfInput');
 const saveSettingsBtn = $('saveSettingsBtn');
 const closeSettingsBtn = $('closeSettingsBtn');
 
@@ -67,19 +68,15 @@ function renderPlayers() {
 
   playersList.innerHTML = entries.map(([id, p]) => {
     const name = escapeHtml(p.characterName || p.name || 'ตัวละคร');
-    const alias = escapeHtml(p.name || 'ผู้เล่น');
-    const trait = escapeHtml(p.characterTrait || 'ยังไม่ได้ระบุลักษณะ');
     const isMe = id === myId;
     return `
       <div class="player-card ${isMe ? 'me' : ''}">
         <div class="player-badge" style="background:${p.color || '#888'}"></div>
         <div class="player-info">
-          <div class="player-head">
+          <div class="player-head player-head-simple">
             <span>${name}</span>
             <span class="player-status ${p.connected === false ? 'offline' : 'online'}">${p.connected === false ? 'ออฟไลน์' : 'ออนไลน์'}</span>
           </div>
-          <div class="player-alias">${alias}</div>
-          <div class="player-trait">${trait}</div>
         </div>
       </div>
     `;
@@ -163,6 +160,55 @@ socket.on('aiThinking', (thinking) => {
 
 socket.on('aiError', (msg) => {
   alert(msg);
+});
+
+async function loadPdfWorld(file) {
+  if (!file || file.type !== 'application/pdf') {
+    alert('กรุณาเลือกไฟล์ PDF เท่านั้น');
+    return;
+  }
+
+  try {
+    if (!window.pdfjsLib) {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js';
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    const pdfjsLib = window.pdfjsLib;
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item) => (item && item.str) || '').join(' ');
+      text += pageText + '\n';
+    }
+
+    const cleanText = text.replace(/\s+/g, ' ').trim();
+    if (!cleanText) {
+      alert('ไม่สามารถอ่านข้อความจาก PDF นี้ได้');
+      return;
+    }
+
+    scenarioInput.value = cleanText.slice(0, 4000);
+    alert('อ่านข้อมูลจาก PDF แล้ว');
+  } catch (error) {
+    console.error('PDF parse failed', error);
+    alert('อ่าน PDF ไม่สำเร็จ กรุณาเลือกไฟล์ PDF อื่น');
+  }
+}
+
+worldPdfInput.addEventListener('change', async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (file) {
+    await loadPdfWorld(file);
+  }
 });
 
 sendBtn.addEventListener('click', () => {
