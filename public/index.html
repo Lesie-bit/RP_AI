@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ห้อง RP กับ AI ผู้บรรยาย</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="joinScreen" class="screen">
+    <div class="card">
+      <h1>🎭 ห้อง RP กับ AI</h1>
+      <div class="field">
+        <label>รหัสห้อง (ตั้งอะไรก็ได้ แต่ต้องตรงกับเพื่อน)</label>
+        <input id="roomCodeInput" placeholder="เช่น เพื่อนซี้001" value="room1">
+      </div>
+      <div class="field">
+        <label>ชื่อตัวละครของคุณ</label>
+        <input id="nameInput" placeholder="เช่น อาเธอร์ นักดาบพเนจร">
+      </div>
+      <button id="joinBtn" class="primary">เข้าห้อง</button>
+      <p id="joinError" class="error"></p>
+    </div>
+  </div>
+
+  <div id="app" class="screen" hidden>
+    <header>
+      <h1>🎭 <span id="roomLabel"></span></h1>
+      <button id="settingsBtn" title="ตั้งค่า">⚙️</button>
+    </header>
+    <div id="scenarioBanner"></div>
+    <div id="chat"></div>
+    <div id="composer">
+      <textarea id="input" rows="2" placeholder="พิมพ์สิ่งที่ตัวละครของคุณพูดหรือทำ..."></textarea>
+      <div class="actions">
+        <button id="aiBtn" class="secondary">🤖 ให้ AI เล่าเรื่องต่อ</button>
+        <button id="sendBtn" class="primary">ส่ง</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" hidden>
+    <div class="sheet">
+      <h2>ตั้งค่าห้อง</h2>
+      <div class="field">
+        <label>ชื่อตัวละครของคุณ</label>
+        <input id="charNameInput" maxlength="40">
+      </div>
+      <div class="field">
+        <label>ฉาก / บริบทเรื่อง (ทุกคนเห็นร่วมกัน)</label>
+        <textarea id="scenarioInput" placeholder="เช่น โลกแฟนตาซียุคกลาง มีเวทมนตร์และมังกร..."></textarea>
+      </div>
+      <div class="sheet-actions">
+        <button id="closeSettingsBtn" class="secondary">ปิด</button>
+        <button id="saveSettingsBtn" class="primary">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

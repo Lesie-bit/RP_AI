@@ -1,0 +1,17 @@
+{
+  "name": "ai-rp-room",
+  "version": "1.0.0",
+  "description": "ห้อง RP สำหรับ 2 ผู้เล่น พร้อม AI ผู้บรรยาย (self-hosted, ใช้ API ของผู้ให้บริการ AI ภายนอก)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
