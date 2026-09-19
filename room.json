@@ -5,7 +5,7 @@
     "tOrWQ0mLQ-z7ls30AAAF": {
       "name": "ผู้เล่น",
       "color": "#ef4444",
-      "connected": true
+      "connected": false
     },
     "vG3N6nHho-xrpi-EAAAG": {
       "name": "ผู้เล่น",
@@ -35,7 +35,7 @@
     "U6kDUfqfYgzwgMkRAAAM": {
       "name": "ผู้เล่น",
       "color": "#0891b2",
-      "connected": true
+      "connected": false
     }
   }
 }
