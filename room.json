@@ -1,0 +1,41 @@
+{
+  "setting": "",
+  "messages": [],
+  "players": {
+    "tOrWQ0mLQ-z7ls30AAAF": {
+      "name": "ผู้เล่น",
+      "color": "#ef4444",
+      "connected": true
+    },
+    "vG3N6nHho-xrpi-EAAAG": {
+      "name": "ผู้เล่น",
+      "color": "#16a34a",
+      "connected": false
+    },
+    "SqeJlZJohoDsoT0OAAAI": {
+      "name": "ผู้เล่น",
+      "color": "#ef4444",
+      "connected": false
+    },
+    "7tQY_XYONn9IRJQPAAAJ": {
+      "name": "ผู้เล่น",
+      "color": "#0891b2",
+      "connected": false
+    },
+    "Du5URQauNhWA70CyAAAK": {
+      "name": "ผู้เล่น",
+      "color": "#f97316",
+      "connected": false
+    },
+    "UzUdoS-Bbx2xhMrTAAAL": {
+      "name": "ผู้เล่น",
+      "color": "#16a34a",
+      "connected": false
+    },
+    "U6kDUfqfYgzwgMkRAAAM": {
+      "name": "ผู้เล่น",
+      "color": "#0891b2",
+      "connected": true
+    }
+  }
+}

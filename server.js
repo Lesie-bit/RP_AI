@@ -52,7 +52,13 @@ loadRoom();
 function publicPlayers() {
   const out = {};
   for (const id in room.players) {
-    out[id] = { name: room.players[id].name, color: room.players[id].color };
+    out[id] = {
+      name: room.players[id].name,
+      characterName: room.players[id].characterName,
+      characterTrait: room.players[id].characterTrait,
+      color: room.players[id].color,
+      connected: room.players[id].connected,
+    };
   }
   return out;
 }
@@ -73,7 +79,8 @@ function trimMessages(room) {
 
 function nameFor(room, senderId) {
   const p = room.players[senderId];
-  return (p && p.name) || 'ผู้เล่น';
+  if (!p) return 'ผู้เล่น';
+  return p.characterName || p.name || 'ผู้เล่น';
 }
 
 async function callAI(room) {
@@ -85,10 +92,23 @@ async function callAI(room) {
     return `${who}: ${m.text}`;
   }).join('\n');
 
+  const playerSummaries = Object.values(room.players)
+    .filter((p) => p && (p.name || p.characterName || p.characterTrait))
+    .map((p) => {
+      const characterName = p.characterName || 'ผู้เล่น';
+      const playerName = p.name || 'นักเล่น';
+      const trait = p.characterTrait ? ` ลักษณะ: ${p.characterTrait}` : '';
+      return `${characterName} (${playerName})${trait}`;
+    })
+    .join('\n');
+
   const systemPrompt = `คุณคือผู้บรรยาย (Game Master) ของเกมสวมบทบาท (RP) แบบข้อความ ระหว่างผู้เล่นสองคน
 บริบท/ฉากของเรื่อง: ${room.setting || '(ยังไม่ได้ระบุ ให้ประเมินจากบทสนทนาและสร้างบรรยากาศที่เข้ากัน)'}
+ข้อมูลผู้เล่น:
+${playerSummaries || 'ยังไม่มีข้อมูลผู้เล่น'}
+ให้คำตอบเป็นภาษาไทยเท่านั้น และเป็นการเล่าเรื่องแบบปกติ เช่น AI chat ที่คุมเกม ใช้ภาษาที่สวยและลึกซึ้ง ปรับเรื่องตามตัวละครที่มีอยู่ ให้ความรู้สึกแบบโรเลิฟเล่นเกม RPG คุยกันแบบธรรมชาติ
 เขียนคำบรรยายฉาก เหตุการณ์ หรือคำพูดของ NPC สั้นกระชับ (3-6 ประโยค) เพื่อขับเคลื่อนเรื่องราวต่อ
-ห้ามพูดแทนหรือตัดสินใจแทนตัวละครของผู้เล่นทั้งสองคน ให้เว้นจังหวะให้พวกเขาเลือกทำเอง ตอบเป็นภาษาไทยเท่านั้น`;
+อย่าแทนตัวละครของผู้เล่นทั้งสองคนหรือตัดสินใจแทนพวกเขา ให้เว้นจังหวะให้พวกเขาเลือกทำเอง`;
 
   const userTurn = `บทสนทนาที่ผ่านมา:\n${history || '(ยังไม่มีบทสนทนา เริ่มเปิดฉากเรื่องได้เลย)'}`;
 
@@ -157,7 +177,7 @@ async function callAI(room) {
 io.on('connection', (socket) => {
   let myId = null;
 
-  socket.on('join', ({ name }, cb) => {
+  socket.on('join', ({ name, characterName, characterTrait }, cb) => {
     const activeCount = Object.keys(room.players).filter((id) => room.players[id].connected).length;
     if (activeCount >= MAX_PLAYERS && !room.players[socket.id]) {
       cb && cb({ ok: false, error: 'ห้องเต็มแล้ว (จำกัด 2 คน)' });
@@ -167,6 +187,8 @@ io.on('connection', (socket) => {
     socket.join(FIXED_ROOM);
     room.players[myId] = {
       name: (name || 'ผู้เล่น').slice(0, 40),
+      characterName: (characterName || 'ตัวละคร').slice(0, 40),
+      characterTrait: (characterTrait || '').slice(0, 200),
       color: pickColor(myId),
       connected: true,
     };
@@ -187,9 +209,12 @@ io.on('connection', (socket) => {
     io.to(FIXED_ROOM).emit('scenario', room.setting);
   });
 
-  socket.on('setName', (name) => {
+  socket.on('setName', (payload) => {
     if (room.players[myId]) {
-      room.players[myId].name = String(name || 'ผู้เล่น').slice(0, 40);
+      const next = typeof payload === 'string' ? { name: payload } : payload || {};
+      room.players[myId].name = String(next.name || room.players[myId].name || 'ผู้เล่น').slice(0, 40);
+      room.players[myId].characterName = String(next.characterName || room.players[myId].characterName || 'ตัวละคร').slice(0, 40);
+      room.players[myId].characterTrait = String(next.characterTrait || room.players[myId].characterTrait || '').slice(0, 200);
       saveRoomDebounced();
       io.to(FIXED_ROOM).emit('players', publicPlayers());
     }

@@ -5,89 +5,165 @@ let messages = [];
 let scenario = '';
 
 const $ = (id) => document.getElementById(id);
-const joinScreen = $('joinScreen');
 const app = $('app');
-const nameInput = $('nameInput');
-const joinBtn = $('joinBtn');
-const joinError = $('joinError');
 const scenarioBanner = $('scenarioBanner');
 const chat = $('chat');
+const playersList = $('playersList');
 const input = $('input');
 const sendBtn = $('sendBtn');
 const aiBtn = $('aiBtn');
 const settingsBtn = $('settingsBtn');
 const settingsModal = $('settingsModal');
+const profileNameInput = $('profileNameInput');
+const profileCharacterNameInput = $('profileCharacterNameInput');
+const profileCharacterTraitInput = $('profileCharacterTraitInput');
 const scenarioInput = $('scenarioInput');
-const charNameInput = $('charNameInput');
 const saveSettingsBtn = $('saveSettingsBtn');
 const closeSettingsBtn = $('closeSettingsBtn');
 
-// จำชื่อล่าสุดไว้ในเครื่องผู้เล่นแต่ละคน จะได้ไม่ต้องพิมพ์ใหม่ทุกครั้ง
-nameInput.value = localStorage.getItem('rp_name') || '';
-
-joinBtn.addEventListener('click', () => {
-  const name = (nameInput.value || 'ผู้เล่น').trim();
-  localStorage.setItem('rp_name', name);
-  joinBtn.disabled = true;
-  socket.emit('join', { name }, (res) => {
-    joinBtn.disabled = false;
-    if (!res.ok) {
-      joinError.textContent = res.error;
-      return;
-    }
-    myId = res.myId;
-    scenario = res.setting;
-    messages = res.messages;
-    players = res.players;
-    joinScreen.hidden = true;
-    app.hidden = false;
-    renderScenario();
-    renderMessages();
-  });
-});
-
-socket.on('players', (p) => { players = p; renderMessages(); });
-socket.on('scenario', (s) => { scenario = s; renderScenario(); });
-socket.on('message', (m) => { messages.push(m); renderMessages(); });
-socket.on('aiThinking', (thinking) => {
-  aiBtn.disabled = thinking;
-  aiBtn.textContent = thinking ? 'AI กำลังคิด...' : '🤖 ให้ AI เล่าเรื่องต่อ';
-});
-socket.on('aiError', (msg) => { alert(msg); });
+const storedName = localStorage.getItem('rp_name') || 'ผู้เล่น';
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function getJoinPayload() {
+  const baseName = localStorage.getItem('rp_name') || 'ผู้เล่น';
+  return {
+    name: (baseName || 'ผู้เล่น').trim() || 'ผู้เล่น',
+    characterName: 'ตัวละคร',
+    characterTrait: '',
+  };
+}
+
 function nameFor(id) {
   if (!id) return 'AI ผู้บรรยาย';
-  return (players[id] && players[id].name) || 'ผู้เล่น';
+  const p = players[id];
+  if (!p) return 'ผู้เล่น';
+  return p.characterName || p.name || 'ผู้เล่น';
 }
+
+function aliasFor(id) {
+  if (!id) return 'AI ผู้บรรยาย';
+  const p = players[id];
+  return (p && p.name) || 'ผู้เล่น';
+}
+
 function colorFor(id) {
-  if (!id) return null;
-  return players[id] && players[id].color;
+  if (!id) return 'var(--ai-color)';
+  return players[id] && players[id].color ? players[id].color : 'var(--text-dim)';
 }
 
 function renderScenario() {
   scenarioBanner.textContent = scenario || 'ยังไม่ได้ตั้งฉาก/บริบทของเรื่อง — กด ⚙️ เพื่อเริ่มตั้งเรื่องราว';
 }
 
-function renderMessages() {
-  if (messages.length === 0) {
-    chat.innerHTML = '<div class="notice">ยังไม่มีข้อความ — เริ่มเล่นได้เลย หรือกด "ให้ AI เล่าเรื่องต่อ" เพื่อเปิดฉาก</div>';
+function renderPlayers() {
+  const entries = Object.entries(players);
+  if (entries.length === 0) {
+    playersList.innerHTML = '<div class="empty-state">รอผู้เล่นเข้าร่วม...</div>';
     return;
   }
+
+  playersList.innerHTML = entries.map(([id, p]) => {
+    const name = escapeHtml(p.characterName || p.name || 'ตัวละคร');
+    const alias = escapeHtml(p.name || 'ผู้เล่น');
+    const trait = escapeHtml(p.characterTrait || 'ยังไม่ได้ระบุลักษณะ');
+    const isMe = id === myId;
+    return `
+      <div class="player-card ${isMe ? 'me' : ''}">
+        <div class="player-badge" style="background:${p.color || '#888'}"></div>
+        <div class="player-info">
+          <div class="player-head">
+            <span>${name}</span>
+            <span class="player-status ${p.connected === false ? 'offline' : 'online'}">${p.connected === false ? 'ออฟไลน์' : 'ออนไลน์'}</span>
+          </div>
+          <div class="player-alias">${alias}</div>
+          <div class="player-trait">${trait}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderMessages() {
+  if (messages.length === 0) {
+    chat.innerHTML = '<div class="notice">เริ่มบทสนทนาได้เลย หรือกด "ให้ AI เล่าเรื่องต่อ" เพื่อเปิดฉาก</div>';
+    return;
+  }
+
   chat.innerHTML = messages.map((m) => {
     const isAI = m.type === 'ai';
     const isMe = !isAI && m.senderId === myId;
     const cls = isAI ? 'msg ai' : (isMe ? 'msg me' : 'msg other');
-    const name = isAI ? '🤖 ผู้บรรยาย (AI)' : escapeHtml(nameFor(m.senderId));
-    const color = isAI ? 'var(--ai-color)' : (colorFor(m.senderId) || 'var(--text-dim)');
+    const displayName = isAI ? '🤖 ผู้บรรยาย (AI)' : escapeHtml(nameFor(m.senderId));
+    const subText = isAI ? 'ผู้คุมเรื่อง' : escapeHtml(aliasFor(m.senderId));
+    const color = colorFor(m.senderId);
     const text = escapeHtml(m.text).replace(/\n/g, '<br>');
-    return `<div class="${cls}"><div class="msg-name" style="color:${color}">${name}</div><div class="msg-text">${text}</div></div>`;
+    return `
+      <div class="${cls}">
+        <div class="msg-header">
+          <span class="msg-name" style="color:${color}">${displayName}</span>
+          ${isAI ? '' : `<span class="msg-role">${subText}</span>`}
+        </div>
+        <div class="msg-text">${text}</div>
+      </div>
+    `;
   }).join('');
   chat.scrollTop = chat.scrollHeight;
 }
+
+function joinRoom() {
+  const payload = getJoinPayload();
+  socket.emit('join', payload, (res) => {
+    if (!res.ok) {
+      alert(res.error || 'ไม่สามารถเข้าห้องได้');
+      return;
+    }
+
+    myId = res.myId;
+    scenario = res.setting;
+    messages = res.messages;
+    players = res.players;
+
+    const me = players[myId] || {};
+    profileNameInput.value = me.name || payload.name;
+    profileCharacterNameInput.value = me.characterName || payload.characterName;
+    profileCharacterTraitInput.value = me.characterTrait || payload.characterTrait || '';
+    renderScenario();
+    renderPlayers();
+    renderMessages();
+  });
+}
+
+socket.on('connect', () => {
+  joinRoom();
+});
+
+socket.on('players', (p) => {
+  players = p;
+  renderPlayers();
+  renderMessages();
+});
+
+socket.on('scenario', (s) => {
+  scenario = s;
+  renderScenario();
+});
+
+socket.on('message', (m) => {
+  messages.push(m);
+  renderMessages();
+});
+
+socket.on('aiThinking', (thinking) => {
+  aiBtn.disabled = thinking;
+  aiBtn.textContent = thinking ? 'AI กำลังคิด...' : '🤖 ให้ AI เล่าเรื่องต่อ';
+});
+
+socket.on('aiError', (msg) => {
+  alert(msg);
+});
 
 sendBtn.addEventListener('click', () => {
   const text = input.value;
@@ -95,22 +171,41 @@ sendBtn.addEventListener('click', () => {
   socket.emit('message', text);
   input.value = '';
 });
+
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendBtn.click();
   }
 });
-aiBtn.addEventListener('click', () => { socket.emit('askAI'); });
+
+aiBtn.addEventListener('click', () => {
+  socket.emit('askAI');
+});
 
 settingsBtn.addEventListener('click', () => {
-  scenarioInput.value = scenario;
-  charNameInput.value = (players[myId] && players[myId].name) || '';
+  const me = players[myId] || {};
+  profileNameInput.value = me.name || storedName || 'ผู้เล่น';
+  profileCharacterNameInput.value = me.characterName || 'ตัวละคร';
+  const currentTrait = me.characterTrait || profileCharacterTraitInput.value || '';
+  profileCharacterTraitInput.value = currentTrait;
+  scenarioInput.value = scenario || '';
   settingsModal.hidden = false;
 });
-closeSettingsBtn.addEventListener('click', () => { settingsModal.hidden = true; });
+
+closeSettingsBtn.addEventListener('click', () => {
+  settingsModal.hidden = true;
+});
+
 saveSettingsBtn.addEventListener('click', () => {
+  const payload = {
+    name: (profileNameInput.value || 'ผู้เล่น').trim() || 'ผู้เล่น',
+    characterName: (profileCharacterNameInput.value || 'ตัวละคร').trim() || 'ตัวละคร',
+    characterTrait: (profileCharacterTraitInput.value || '').trim(),
+  };
+
   socket.emit('setScenario', scenarioInput.value.trim());
-  socket.emit('setName', charNameInput.value.trim());
+  socket.emit('setName', payload);
+  localStorage.setItem('rp_name', payload.name);
   settingsModal.hidden = true;
 });
