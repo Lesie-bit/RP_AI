@@ -222,7 +222,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('setScenario', (setting) => {
-    room.setting = String(setting || '').slice(0, 4000);
+    room.setting = String(setting || '');
     saveRoomDebounced();
     io.to(FIXED_ROOM).emit('scenario', room.setting);
   });

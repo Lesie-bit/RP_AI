@@ -55,8 +55,19 @@ function colorFor(id) {
   return players[id] && players[id].color ? players[id].color : 'var(--text-dim)';
 }
 
+function getScenarioTitle(raw) {
+  const text = String(raw || '').trim();
+  if (!text) {
+    return 'ยังไม่ได้ตั้งฉาก/บริบทของเรื่อง — กด ⚙️ เพื่อเริ่มตั้งเรื่องราว';
+  }
+
+  const line = text.split(/\n+/).map((part) => part.trim()).find(Boolean) || text;
+  const compact = line.replace(/\s+/g, ' ').trim();
+  return compact.length > 80 ? `${compact.slice(0, 77).trim()}…` : compact;
+}
+
 function renderScenario() {
-  scenarioBanner.textContent = scenario || 'ยังไม่ได้ตั้งฉาก/บริบทของเรื่อง — กด ⚙️ เพื่อเริ่มตั้งเรื่องราว';
+  scenarioBanner.textContent = getScenarioTitle(scenario);
 }
 
 function renderPlayers() {
@@ -196,7 +207,7 @@ async function loadPdfWorld(file) {
       return;
     }
 
-    scenarioInput.value = cleanText.slice(0, 4000);
+    scenarioInput.value = cleanText;
     alert('อ่านข้อมูลจาก PDF แล้ว');
   } catch (error) {
     console.error('PDF parse failed', error);
