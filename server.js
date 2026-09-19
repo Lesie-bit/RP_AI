@@ -49,6 +49,23 @@ function saveRoomDebounced() {
 }
 loadRoom();
 
+function normalizeRoomState() {
+  const freshPlayers = {};
+  for (const id in room.players) {
+    const player = room.players[id];
+    if (!player) continue;
+    if (player.connected === false) continue;
+    freshPlayers[id] = {
+      name: String(player.name || 'ผู้เล่น').slice(0, 40),
+      characterName: String(player.characterName || 'ตัวละคร').slice(0, 40),
+      characterTrait: String(player.characterTrait || '').slice(0, 200),
+      color: player.color || pickColor(id),
+      connected: true,
+    };
+  }
+  room.players = freshPlayers;
+}
+
 function publicPlayers() {
   const out = {};
   for (const id in room.players) {
@@ -178,6 +195,7 @@ io.on('connection', (socket) => {
   let myId = null;
 
   socket.on('join', ({ name, characterName, characterTrait }, cb) => {
+    normalizeRoomState();
     const activeCount = Object.keys(room.players).filter((id) => room.players[id].connected).length;
     if (activeCount >= MAX_PLAYERS && !room.players[socket.id]) {
       cb && cb({ ok: false, error: 'ห้องเต็มแล้ว (จำกัด 2 คน)' });
